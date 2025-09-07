@@ -17,23 +17,40 @@ export default function Grid() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // BoxGeometry Grid 만들기
-  const gridSize = 10;
-  const gridDivisions = 10;
+  const gridSize = 20;
+  const gridDivisions = 20;
   const gridHelper = new THREE.GridHelper(gridSize, gridDivisions);
   scene.add(gridHelper);
 
-  const boxSize = 1;
+  const boxWidth = 1; // width
+  const boxHeight = 1; // height
+  const boxDepth = 1; // depth
 
   // Row와 Cell로 나누어서 2차원 그리드 생성
-  const rows = 3; // 3개 행
-  const cols = 4; // 4개 열 (총 12개 박스)
+  const rows = 10; // 3개 행
+  const cols = 10; // 4개 열 (총 12개 박스)
   const boxes = [];
-  const grid: { mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>; row: number; col: number; index: number; }[][] = []; // 2차원 배열로 그리드 구조 저장
-  const boxColors = [
-    0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff,
-    0x00ffff, 0xffa500, 0x800080, 0xffc0cb, 0xa52a2a,
-    0x32cd32, 0xff1493
-  ];
+  const grid: {
+    mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>;
+    row: number;
+    col: number;
+    index: number;
+  }[][] = []; // 2차원 배열로 그리드 구조 저장
+  // const boxColors = [
+  //   0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff,
+  //   0x00ffff, 0xffa500, 0x800080, 0xffc0cb, 0xa52a2a,
+  //   0x32cd32, 0xff1493
+  // ];
+
+  // random rgb
+  const boxColors: string[] = [];
+
+  for (let i = 0; i < rows * cols; i++) {
+    const r = Math.ceil(Math.random() * 255);
+    const g = Math.ceil(Math.random() * 255);
+    const b = Math.ceil(Math.random() * 255);
+    boxColors.push(`rgb(${r}, ${g}, ${b})`);
+  }
 
   // Row별로 그리드 생성
   for (let row = 0; row < rows; row++) {
@@ -41,7 +58,7 @@ export default function Grid() {
 
     for (let col = 0; col < cols; col++) {
       const index = row * cols + col; // 0~11
-      const boxGeometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
+      const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
       const boxMaterial = new THREE.MeshBasicMaterial({ color: boxColors[index] });
       const box = new THREE.Mesh(boxGeometry, boxMaterial);
 
@@ -89,10 +106,10 @@ export default function Grid() {
       row.forEach((cell: { mesh: any; index: number; }, colIndex: number) => {
         const box = cell.mesh;
 
-        // Row별로 다른 회전 속도
-        box.rotation.x += 0.01 * (rowIndex + 1);
-        box.rotation.y += 0.01 * (colIndex + 1);
-        box.rotation.z += 0.005 * (cell.index + 1);
+        // // Row별로 다른 회전 속도
+        // box.rotation.x += 0.01 * (rowIndex + 1);
+        // box.rotation.y += 0.01 * (colIndex + 1);
+        // box.rotation.z += 0.005 * (cell.index + 1);
 
         // Row별로 다른 Y축 움직임 (파도 효과)
         // box.position.y = 0.5 + Math.sin(Date.now() * 0.001 + rowIndex + colIndex) * 0.3;
