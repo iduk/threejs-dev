@@ -103,9 +103,9 @@ export default function Grid() {
     requestAnimationFrame(animate);
 
     // Row별로 다른 애니메이션 적용
-    grid.forEach((row, rowIndex) => {
+    grid.forEach((row, _rowIndex) => {
       // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-      row.forEach((cell: { mesh: any; index: number; }, colIndex: number) => {
+      row.forEach((cell: { mesh: any; index: number; }, _colIndex: number) => {
         const box = cell.mesh;
 
         // 같은 축으로 천천히 회전
