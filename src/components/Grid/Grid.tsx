@@ -106,13 +106,10 @@ export default function Grid() {
       row.forEach((cell: { mesh: any; index: number; }, colIndex: number) => {
         const box = cell.mesh;
 
-        // // Row별로 다른 회전 속도
-        // box.rotation.x += 0.01 * (rowIndex + 1);
-        // box.rotation.y += 0.01 * (colIndex + 1);
-        // box.rotation.z += 0.005 * (cell.index + 1);
-
-        // Row별로 다른 Y축 움직임 (파도 효과)
-        // box.position.y = 0.5 + Math.sin(Date.now() * 0.001 + rowIndex + colIndex) * 0.3;
+        // 같은 축으로 천천히 회전
+        box.rotation.x += 0.008;
+        box.rotation.y += 0.008;
+        // box.rotation.z += 0.001;
       });
     });
 
