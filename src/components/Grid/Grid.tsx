@@ -19,7 +19,9 @@ export default function Grid() {
   // BoxGeometry Grid 만들기
   const gridSize = 20;
   const gridDivisions = 20;
-  const gridHelper = new THREE.GridHelper(gridSize, gridDivisions);
+  // #000 20%
+  const gridColorCenterLine = 0x444444; // 중앙 선 색상
+  const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, gridColorCenterLine);
   scene.add(gridHelper);
 
   const boxWidth = 1; // width
@@ -59,7 +61,7 @@ export default function Grid() {
     for (let col = 0; col < cols; col++) {
       const index = row * cols + col; // 0~11
       const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-      const boxMaterial = new THREE.MeshBasicMaterial({ color: boxColors[index] });
+      const boxMaterial = new THREE.MeshBasicMaterial({ color: boxColors[index], wireframe: false, transparent: true, opacity: 0.8, });
       const box = new THREE.Mesh(boxGeometry, boxMaterial);
 
       // Cell 정보를 객체로 저장
