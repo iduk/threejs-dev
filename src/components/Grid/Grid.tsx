@@ -1,0 +1,107 @@
+import * as THREE from 'three';
+
+export default function Grid() {
+  // Basic Three.js setup
+  const fullWidth = window.innerWidth;
+  const fullHeight = window.innerHeight;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(100, fullWidth / fullHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(fullWidth, fullHeight);
+  // body에 렌더링
+  document.body.style.margin = '0'; // 기본 margin 제거
+  // document.body.style.overflow = 'hidden'; // 스크롤바 제거
+  document.body.appendChild(renderer.domElement); // 
+
+  // BoxGeometry Grid 만들기
+  const gridSize = 10;
+  const gridDivisions = 10;
+  const gridHelper = new THREE.GridHelper(gridSize, gridDivisions);
+  scene.add(gridHelper);
+
+  const boxSize = 1;
+
+  // Row와 Cell로 나누어서 2차원 그리드 생성
+  const rows = 3; // 3개 행
+  const cols = 4; // 4개 열 (총 12개 박스)
+  const boxes = [];
+  const grid: { mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>; row: number; col: number; index: number; }[][] = []; // 2차원 배열로 그리드 구조 저장
+  const boxColors = [
+    0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff,
+    0x00ffff, 0xffa500, 0x800080, 0xffc0cb, 0xa52a2a,
+    0x32cd32, 0xff1493
+  ];
+
+  // Row별로 그리드 생성
+  for (let row = 0; row < rows; row++) {
+    const currentRow = [];
+
+    for (let col = 0; col < cols; col++) {
+      const index = row * cols + col; // 0~11
+      const boxGeometry = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
+      const boxMaterial = new THREE.MeshBasicMaterial({ color: boxColors[index] });
+      const box = new THREE.Mesh(boxGeometry, boxMaterial);
+
+      // Cell 정보를 객체로 저장
+      const cell = {
+        mesh: box,
+        row: row,
+        col: col,
+        index: index
+      };
+
+      // 2차원 그리드로 배치
+      box.position.x = (col - (cols - 1) / 2) * 2; // 열 간격 2
+      box.position.y = 0.5; // 그리드 위에 올리기
+      box.position.z = (row - (rows - 1) / 2) * 2; // 행 간격 2
+
+      boxes.push(box);
+      currentRow.push(cell);
+      scene.add(box);
+    }
+
+    grid.push(currentRow);
+  }
+
+  // document.body.appendChild(renderer.domElement);
+  // id rendering
+  const container = document.getElementById('threejs-container') || null;
+  container?.appendChild(renderer.domElement);
+
+  // 카메라 포지션 - 위에서 아래로 내려다보기
+  camera.position.x = 0;   // 중앙
+  camera.position.y = 10;  // 높은 곳에서
+  camera.position.z = 0;   // 그리드 중앙 위에서
+
+  // 카메라가 그리드를 위에서 아래로 내려다보도록 설정
+  camera.lookAt(0, 0, 0);
+
+  // 애니메이션 루프 - Row별로 다른 애니메이션
+  const animate = () => {
+    requestAnimationFrame(animate);
+
+    // Row별로 다른 애니메이션 적용
+    grid.forEach((row, rowIndex) => {
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      row.forEach((cell: { mesh: any; index: number; }, colIndex: number) => {
+        const box = cell.mesh;
+
+        // Row별로 다른 회전 속도
+        box.rotation.x += 0.01 * (rowIndex + 1);
+        box.rotation.y += 0.01 * (colIndex + 1);
+        box.rotation.z += 0.005 * (cell.index + 1);
+
+        // Row별로 다른 Y축 움직임 (파도 효과)
+        // box.position.y = 0.5 + Math.sin(Date.now() * 0.001 + rowIndex + colIndex) * 0.3;
+      });
+    });
+
+    renderer.render(scene, camera);
+  };
+  animate();
+
+  return (
+    <div id="threejs-container" className="w-full h-full" />
+  )
+}
