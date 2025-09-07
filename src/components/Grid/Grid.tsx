@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 export default function Grid() {
@@ -10,9 +11,10 @@ export default function Grid() {
   const renderer = new THREE.WebGLRenderer();
   renderer.setSize(fullWidth, fullHeight);
   // body에 렌더링
-  document.body.style.margin = '0'; // 기본 margin 제거
+  // document.body.style.margin = '0'; // 기본 margin 제거
   // document.body.style.overflow = 'hidden'; // 스크롤바 제거
-  document.body.appendChild(renderer.domElement); // 
+  // document.body.appendChild(renderer.domElement); // 
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // BoxGeometry Grid 만들기
   const gridSize = 10;
@@ -101,7 +103,21 @@ export default function Grid() {
   };
   animate();
 
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.appendChild(renderer.domElement);
+    }
+    return () => {
+      // 컴포넌트 언마운트 시 정리
+      if (containerRef.current) {
+        containerRef.current.removeChild(renderer.domElement);
+      }
+    };
+  }, [renderer.domElement]);
+
   return (
-    <div id="threejs-container" className="w-full h-full" />
+    <>
+      <div ref={containerRef} className="w-full h-full" />
+    </>
   )
 }
