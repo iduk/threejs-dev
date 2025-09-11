@@ -22,18 +22,55 @@ export default function Grid() {
   // #000 20%
   const gridColorCenterLine = 0x444444; // 중앙 선 색상
   const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, gridColorCenterLine);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+  const dir = new THREE.DirectionalLight(0xffffff, 1);
   scene.add(gridHelper);
+  scene.add(ambient, dir);
 
   const boxWidth = 1; // width
   const boxHeight = 1; // height
   const boxDepth = 1; // depth
 
-  // Row와 Cell로 나누어서 2차원 그리드 생성
+  // 깊이감: 안개(fog) 추가
+  scene.fog = new THREE.FogExp2(0x000000, 0.04);
+
+  // 레이아웃 포지션 미리 계산 (grid ↔ globe 전환용)
   const rows = 10; // 3개 행
   const cols = 10; // 4개 열 (총 12개 박스)
+  const total = rows * cols;
+  const gridPositions: THREE.Vector3[] = [];
+  const globePositions: THREE.Vector3[] = [];
+
+  // Grid positions (기존 배치 로직을 벡터로 저장)
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = (c - (cols - 1) / 2) * 2; // 중앙 정렬
+      const y = 0.5; // 박스 높이의 절반
+      const z = (r - (rows - 1) / 2) * 2;
+      gridPositions.push(new THREE.Vector3(x, y, z));
+    }
+  }
+
+  // Globe positions (Fibonacci sphere)
+  const radius = 10; // 구 반지름
+  for (let i = 0; i < total; i++) {
+    const k = (i + 0.5) / total;
+    const phi = Math.acos(1 - 2 * k);
+    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+    const x = radius * Math.sin(phi) * Math.cos(theta);
+    const y = radius * Math.cos(phi);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    globePositions.push(new THREE.Vector3(x, y, z));
+  }
+
+  // 전환 상태값
+  let targetLayout: 'grid' | 'globe' = 'grid';
+  let t = 0; // 0=grid, 1=globe
+
+  // Row와 Cell로 나누어서 2차원 그리드 생성
   const boxes = [];
   const grid: {
-    mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshBasicMaterial, THREE.Object3DEventMap>;
+    mesh: THREE.Mesh<THREE.BoxGeometry, THREE.MeshStandardMaterial, THREE.Object3DEventMap>;
     row: number;
     col: number;
     index: number;
@@ -61,7 +98,13 @@ export default function Grid() {
     for (let col = 0; col < cols; col++) {
       const index = row * cols + col; // 0~11
       const boxGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-      const boxMaterial = new THREE.MeshBasicMaterial({ color: boxColors[index], wireframe: false, transparent: true, opacity: 0.8, });
+      const boxMaterial = new THREE.MeshStandardMaterial({
+        color: boxColors[index] as unknown as THREE.ColorRepresentation,
+        metalness: 0.1,
+        roughness: 0.6,
+        transparent: true,
+        opacity: 0.9,
+      });
       const box = new THREE.Mesh(boxGeometry, boxMaterial);
 
       // Cell 정보를 객체로 저장
@@ -73,9 +116,7 @@ export default function Grid() {
       };
 
       // 2차원 그리드로 배치
-      box.position.x = (col - (cols - 1) / 2) * 2; // 열 간격 2
-      box.position.y = 0.5; // 그리드 위에 올리기
-      box.position.z = (row - (rows - 1) / 2) * 2; // 행 간격 2
+      box.position.copy(gridPositions[index]);
 
       boxes.push(box);
       currentRow.push(cell);
@@ -98,6 +139,9 @@ export default function Grid() {
   // 카메라가 그리드를 위에서 아래로 내려다보도록 설정
   camera.lookAt(0, 0, 0);
 
+  // 라이트 위치
+  dir.position.set(5, 10, 5);
+
   // 애니메이션 루프 - Row별로 다른 애니메이션
   const animate = () => {
     requestAnimationFrame(animate);
@@ -107,6 +151,20 @@ export default function Grid() {
       // biome-ignore lint/suspicious/noExplicitAny: <explanation>
       row.forEach((cell: { mesh: any; index: number; }, _colIndex: number) => {
         const box = cell.mesh;
+
+        // 전환 보간 값 업데이트 (부드럽게)
+        const speed = 0.02; // 보간 속도
+        if (targetLayout === 'globe') {
+          t = Math.min(1, t + speed);
+        } else {
+          t = Math.max(0, t - speed);
+        }
+
+        // 대상 위치 계산 (grid ↔ globe)
+        const idx = cell.index;
+        const from = gridPositions[idx];
+        const to = globePositions[idx];
+        box.position.lerpVectors(from, to, t);
 
         // 같은 축으로 천천히 회전
         box.rotation.x += 0.008;
@@ -119,11 +177,22 @@ export default function Grid() {
   };
   animate();
 
+  // onKeyDown을 useEffect 바깥에 선언하여 cleanup에서 접근 가능하게 함
+  const onKeyDown = (e: KeyboardEvent) => {
+    // 한국어/영문 키보드 레이아웃과 무관하게 G 키 감지
+    if (e.code === 'KeyG') {
+      targetLayout = targetLayout === 'grid' ? 'globe' : 'grid';
+    }
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.appendChild(renderer.domElement);
+      window.addEventListener('keydown', onKeyDown);
     }
     return () => {
+      window.removeEventListener('keydown', onKeyDown);
       // 컴포넌트 언마운트 시 정리
       if (containerRef.current) {
         containerRef.current.removeChild(renderer.domElement);
